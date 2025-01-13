@@ -10,12 +10,12 @@ df = pd.read_csv("mp_routes.csv")
 
 #* SIMPLE CLEANING - Dropping null rows, renaming columns for ease, dropping unused index column
 df = df.dropna(how="any")
-df = df.rename(columns={"Avg Stars":"Avg_Stars", "Route Type":"Route_Type", "Area Latitude":"Area_Latitude", "Area Longitude": "Area_Longitude", " desc":"Desc", " protection": "Protection", " num_votes":"Num_Votes"})
+df = df.rename(columns={"Avg Stars":"Avg_Stars", "Route Type":"Route_Type", "Area Latitude":"Area_Latitude", "Area Longitude": "Area_Longitude", " desc":"Description", " protection": "Protection", " num_votes":"Num_Votes"})
 df = df.drop(columns=["Unnamed: 0"])
 
 #* Makes our plots look nicer
 plt.style.use("ggplot")
-
+# print(df["Location"])
 #! AS TAKEN FROM KAGGLE:
 #? Route: The name of the route
 #? Location: The location and sub-location of the route
@@ -24,7 +24,7 @@ plt.style.use("ggplot")
 #? Route Type: Only sport and trad routes were scraped
 #? Rating: How difficult the route is
 #? Pitches: How many pitches the route is
-#? Length: How tall/long the route is
+#? Length: How tall/long the route is in feet
 #? Area Latitude/Longitude: GPS coordinates of the route
 #? desc: Description of the route
 #? protection: What gear is needed to climb the route
@@ -36,7 +36,7 @@ plt.style.use("ggplot")
 # print(df[df.duplicated()]) #*There are 0 duplicates in this dataset
 df = df.query("Pitches >= 0")
 df = df.query("Length >= 0")
-df = df.drop(columns=["URL", "Desc"])
+df = df.drop(columns=["URL"])
 
 def first_word(string):
     '''
@@ -58,6 +58,7 @@ df["Rating"] = df["Rating"].apply(first_word) #*Isolates the grade of the climb 
 boolean_list = df["Rating"].isin(["3rd", "4th", "5th", "6th", "Easy", "Medium", "Hard"]) #*Removes grades of a different scale
 boolean_list = [not elem for elem in boolean_list]
 df = df[boolean_list]
+# print(df.value_counts("Rating"))
 
 # df.info()
 # df = df.query("Pitches > 1")
@@ -114,12 +115,14 @@ def outlier_remover(df, column):
         A modified dataframe
     '''
     print(f"Before : The maximum {column} is {df[column].max()} and the minimum is {df[column].min()}")
+    df = df.sort_values(by = column)
     series = df[column]
     length = len(series)
-    iqr = series[round(length*0.75)]-series[round(length*0.25)]
-    lb = series[round(length*0.25)] - (1.5*iqr)
+    print(f"25 percent is {series.iloc[round(length*0.25)]}, 75 percent is {series.iloc[round(length*0.75)]}")
+    iqr = series.iloc[round(length*0.75)]-series.iloc[round(length*0.25)]
+    lb = series.iloc[round(length*0.25)] - (1.5*iqr)
     print(f"lb = {lb}")
-    ub = series[round(length*0.75)] + (1.5*iqr)
+    ub = series.iloc[round(length*0.75)] + (1.5*iqr)
     print(f"ub = {ub}")
     df = df[lb<=df[column]]
     df = df[ub>=df[column]]
@@ -128,48 +131,66 @@ def outlier_remover(df, column):
 
 df["Rating"] = df["Rating"].apply(grade_conversion)
 # print(df["Rating"].value_counts())
-# # #* A scatter plot showing the locations of all climbing routes. Would be good to overlay this with a map of the world. You can clearly see the outline of some continents.
+
+
+
+
+
+
+
+#Multi Pitch Climbs
+# print(df.value_counts("Pitches"))
+df = df[df["Pitches"] != 1]
+df = df[df["Length"] >= 50]
+df = outlier_remover(df, "Length")
+df = outlier_remover(df, "Pitches")
+# print(df.value_counts("Route_Type"))
+
+
+# #* A scatter plot showing the locations of all climbing routes. Would be good to overlay this with a map of the world. You can clearly see the outline of some continents.
 # cmap = plt.cm.RdYlGn
 # norm = colors.Normalize()
-# plt.scatter(df["Area_Longitude"], df["Area_Latitude"], s=0.05, color = cmap(norm(df["Avg_Stars"].values)))
+# plt.scatter(df["Area_Longitude"], df["Area_Latitude"], s=0.5, color = cmap(norm(df["Avg_Stars"].values)))
 # plt.xlabel("Longitude")
 # plt.ylabel("Latitude")
 # plt.title("Where Climbing Routes Can Be Found Across The World")
+# plt.savefig("Map_Ratings")
 # plt.show()
 
-df = outlier_remover(df, "Length")
-# df = outlier_remover(df, "Pitches")
+# #* A scatter plot showing the correlation between the difficulty of a climb and how many stars it recieved.
+# plt.scatter(df["Rating"], df["Avg_Stars"], s=0.3, color="blue")
+# plt.xlabel("Difficulty")
+# plt.ylabel("Stars")
+# plt.title("Comparing difficulty and stars")
+# m,c = np.polyfit(df["Rating"], df["Avg_Stars"], 1)
+# print(f"The equation for line of best fit is y = {m} x + {c}, where y=stars and x=rating")
+# plt.plot(df["Rating"], m*df["Rating"]+c, color = "red")
+# plt.savefig("Ratings_vs_Stars")
+# plt.show()
 
+# #* A scatter plot showing the correlation between the length of a climb and how many stars it recieved.
+# plt.scatter(df["Length"], df["Avg_Stars"], s=0.3, color="blue")
+# plt.xlabel("Length")
+# plt.ylabel("Stars")
+# plt.title("Comparing length and stars")
+# m,c = np.polyfit(df["Length"], df["Avg_Stars"], 1)
+# print(f"The equation for line of best fit is y = {m} x + {c}, where y=stars and x=length")
+# plt.plot(df["Length"], m*df["Length"]+c, color = "red")
+# plt.savefig("Length vs Stars")
+# plt.show()
 
+# #* A scatter plot showing the correlation between how many pitches a climb has and how many stars it recieved.
+# plt.scatter(df["Pitches"], df["Avg_Stars"], s=0.3, color="blue")
+# plt.xlabel("Pitches")
+# plt.ylabel("Stars")
+# plt.title("Comparing pitches and stars")
+# m,c = np.polyfit(df["Pitches"], df["Avg_Stars"], 1)
+# print(f"The equation for line of best fit is y = {m} x + {c}, where y=stars and x=pitches")
+# plt.plot(df["Pitches"], m*df["Pitches"]+c, color = "red")
+# plt.savefig("Pitches vs Stars")
+# plt.show()
 
-plt.scatter(df["Rating"], df["Avg_Stars"], s=0.3, color="blue")
-plt.xlabel("Difficulty")
-plt.ylabel("Stars")
-plt.title("Comparing difficulty and stars")
-m,c = np.polyfit(df["Rating"], df["Avg_Stars"], 1)
-print(f"The equation for line of best fit is y = {m} x + {c}")
-plt.plot(df["Rating"], m*df["Rating"]+c, color = "red")
-plt.show()
-
-plt.scatter(df["Length"], df["Avg_Stars"], s=0.3, color="blue")
-plt.xlabel("Length")
-plt.ylabel("Stars")
-plt.title("Comparing length and stars")
-m,c = np.polyfit(df["Length"], df["Avg_Stars"], 1)
-print(f"The equation for line of best fit is y = {m} x + {c}")
-plt.plot(df["Length"], m*df["Length"]+c, color = "red")
-plt.show()
-
-
-plt.scatter(df["Pitches"], df["Avg_Stars"], s=0.3, color="blue")
-plt.xlabel("Pitches")
-plt.ylabel("Stars")
-plt.title("Comparing pitches and stars")
-m,c = np.polyfit(df["Pitches"], df["Avg_Stars"], 1)
-print(f"The equation for line of best fit is y = {m} x + {c}")
-plt.plot(df["Pitches"], m*df["Pitches"]+c, color = "red")
-plt.show()
-
+df.to_csv("outputted_df.csv", index = False)
 
 
 
