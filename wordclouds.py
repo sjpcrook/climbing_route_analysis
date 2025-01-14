@@ -19,6 +19,9 @@ for i in df["Route"]:
     names = names + " " + i
 # print(names)
 
+
+
+
 # translator = str.maketrans('', '', string.punctuation)
 # j = 0
 # dictionary = {}
@@ -39,18 +42,11 @@ for i in df["Route"]:
 # # print(descs_ts)
 # # print(dictionary)
 
-
-with open("descriptions.txt", 'r', encoding="utf-8") as file:
-    descs = file.read()
-
-
-
-def long_word(word):
-    if len(word)>3:
-        return True
-    else:
-        return False
-
+# def long_word(word):
+#     if len(word)>2:
+#         return True
+#     else:
+#         return False
 # word_df = pd.DataFrame(dictionary).T
 # # print(word_df)
 # word_df = word_df.rename(columns={0: "Frequency", 1 : "Score"})
@@ -61,8 +57,12 @@ def long_word(word):
 # word_df = word_df.drop(columns=["Words"])
 # # print(word_df)
 # word_df["Score"] = word_df["Score"]/word_df["Frequency"]
-
 # word_df.to_csv("word_score_df.csv")
+
+
+with open("descriptions.txt", 'r', encoding="utf-8") as file:
+    descs = file.read()
+
 
 word_df = pd.read_csv("word_score_df.csv")
 word_df = word_df.set_index("Word")
@@ -110,9 +110,9 @@ def word_search(df, words):
                 print(f"Warning: {i} not in dataframe")
     new_df = new_df.set_index("Word")
     return(new_df.sort_values(by="Score", ascending=False))
-print(word_search(word_df, steepness))
-print(word_search(word_df, stones))
-print(word_search(word_df, holds))
+# print(word_search(word_df, steepness))
+# print(word_search(word_df, stones))
+# print(word_search(word_df, holds))
 
 
 mount_mask = np.array(Image.open("Images\mountain_trans.png"))
@@ -121,7 +121,7 @@ mount_mask = np.array(Image.open("Images\mountain_trans.png"))
 def star_colour_grade(word, font_size, position, orientation, random_state=None,**kwargs):
     # print(word)
     if word in all_words:
-        return f"hsl({word_df["Score"].loc[word]*30}, 100%, 50%)"
+        return f"hsl({((word_df["Score"].loc[word]-2.07)*105)}, 100%, 50%)"
     else:
         return f"hsl(240, 100%, 50%)"
 
@@ -131,13 +131,13 @@ def star_colour_grade(word, font_size, position, orientation, random_state=None,
 # plt.savefig("Graphs\Route Name Wordcloud")
 # plt.show()
 
-# wc = WordCloud(background_color="black", mask = mount_mask, width = 1600, height = 1000, stopwords= stopwords).generate(descs)
-# default_colors = wc.to_array()
+wc = WordCloud(background_color="black", mask = mount_mask, width = 1600, height = 1000, stopwords= stopwords).generate(descs)
+default_colors = wc.to_array()
 
-# plt.imshow(wc.recolor(color_func = star_colour_grade), interpolation="bilinear")
-# wc.to_file("test.png")
-# plt.axis("off")
-# plt.savefig("Graphs\Route Description Wordcloud")
+plt.imshow(wc.recolor(color_func = star_colour_grade), interpolation="bilinear")
+wc.to_file("test.png")
+plt.axis("off")
+plt.savefig("Graphs\Route Description Wordcloud")
 
 
 # plt.figure()
